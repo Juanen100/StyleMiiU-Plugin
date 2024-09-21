@@ -56,7 +56,6 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
             need_to_restart = true;
         }
 
-        // Disable all other themes
         for (const auto& theme : themeNames) {
             if (theme != lastChangedTheme) {
                 bool itemValue = false;
@@ -72,15 +71,12 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
                 if ((err = WUPSStorageAPI::Store(lastChangedTheme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
                     DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
                 }
-                if(itemValue){
-                    if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", "current", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
-                    }
-                } else {
+                if(!itemValue)
+                {
                     gCurrentTheme = "";
-                    if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", "current", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
-                    }
+                }
+                if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                    DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", "current", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
                 }
             }
         }
@@ -217,8 +213,6 @@ INITIALIZE_PLUGIN() {
 
 void HandleThemes()
 {
-    char TitleIDString[17];
-    snprintf(TitleIDString, 17, "%016llX", OSGetTitleID());
     std::map<std::string, std::string> themeTitlePath;
     const std::string themeTitleIDPath    = std::string("fs:/vol/external01/wiiu/themes/").append(gCurrentTheme);
     DirList themeTitleDirList(themeTitleIDPath, nullptr, DirList::Dirs);
