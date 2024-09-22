@@ -2,7 +2,7 @@
 #include <content_redirection/redirection.h>
 #include <string>
 
-#define VERSION                                "v1.0"
+#define VERSION                                "v1.0.1"
 #define THEME_MANAGER_ENABLED_STRING           "themeManagerEnabled"
 #define SHUFFLE_THEMES_STRING                  "suffleThemes"
 
