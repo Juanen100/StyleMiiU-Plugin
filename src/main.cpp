@@ -58,14 +58,48 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
         gShuffleThemes = newValue;
         need_to_restart = true;
         if(!newValue){ //Disable all themes
+            enabledThemes.clear();
             for (const auto& theme : themeNames) {
-                bool itemValue = false;
+                bool itemValue = (theme == lastChangedTheme);
                 if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
                     DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
                 }
+
+                if (itemValue) {
+                    gCurrentTheme = theme;
+                    DEBUG_FUNCTION_LINE("Default theme set: %s", gCurrentTheme.c_str());
+                    if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                        DEBUG_FUNCTION_LINE_WARN("Failed to store value \"%s\" for storage item \"%s\": %s (%d)", gCurrentTheme.c_str(), "current", WUPSStorageAPI_GetStatusStr(err), err);
+                    }
+                }
+            }
+        }
+        else {
+            enabledThemes.clear();
+
+            for (const auto& theme : themeNames) {
+                bool themeEnabled = false;
+
+                if (WUPSStorageAPI::Get(theme, themeEnabled) == WUPS_STORAGE_ERROR_SUCCESS) {
+                    if (themeEnabled) {
+                        enabledThemes.push_back(theme);
+                    }
+                } else {
+                    DEBUG_FUNCTION_LINE_WARN("Failed to get theme status for \"%s\"", theme.c_str());
+                }
             }
 
-            gCurrentTheme = "";
+            for (const auto& theme : themeNames) {
+                if (std::find(enabledThemes.begin(), enabledThemes.end(), theme) == enabledThemes.end()) {
+                    bool itemValue = true;
+                    if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                        DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+                    }
+                    enabledThemes.push_back(theme);
+                }
+            }
+
+            gCurrentTheme = !enabledThemes.empty() ? enabledThemes.front() : "";
             if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
                 DEBUG_FUNCTION_LINE_WARN("Failed to store value \"%s\" for storage item \"%s\": %s (%d)", gCurrentTheme.c_str(), "current", WUPSStorageAPI_GetStatusStr(err), err);
             }

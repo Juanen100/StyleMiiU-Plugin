@@ -11,6 +11,9 @@ A step to step guide on how to use it
 2. Enter the **Available Themes** option and you should see the folders that are in `SD:/wiiu/themes/`, showing up empty if no theme is present. Once there, set whatever theme you want to true, if you set all of them to true, only the latest change will get picked by the plugin and show up in the menu. If no theme it's set to true, the Wii U's default home menu will be loaded.
 3. Once you exit the WUPS menu, the Home Menu should restart and once it gets restarted, your Home Menu will now have the theme you chose applied to it.
 
+Additional options:
+- Shuffle themes: This option tries to mimic the 3DS' option of shuffling themes, you can use it by simply activating the option and then in **Available Themes**, select the themes you want to shuffle through. The themes will change **every time you restart the console or exit to the main menu** from an application.
+
 ## Building
 Requires the [ContentRedirectionModule](https://github.com/wiiu-env/ContentRedirectionModule) and [wut](https://github.com/devkitPro/wut)
 Should be as easy as running `make` and let it do it's thing.
