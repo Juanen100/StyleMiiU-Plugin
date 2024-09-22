@@ -60,6 +60,7 @@
         "xloctime": "cpp",
         "cstdarg": "cpp",
         "map": "cpp",
-        "xtree": "cpp"
+        "xtree": "cpp",
+        "random": "cpp"
     }
 }
