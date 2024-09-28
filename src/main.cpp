@@ -5,6 +5,7 @@
 #include <fs/DirList.h>
 
 #include <content_redirection/redirection.h>
+#include <notifications/notifications.h>
 
 #include <coreinit/title.h>
 #include <coreinit/launch.h>
@@ -15,6 +16,7 @@
 #include <wups/config.h>
 #include <wups/config_api.h>
 #include <wups/storage.h>
+#include "utils/WUPSConfigItemThemeBool.h"
 #include <wups/config/WUPSConfigItemBoolean.h>
 
 #include <vector>
@@ -35,11 +37,50 @@ WUPS_USE_STORAGE("theme_manager");
 
 bool need_to_restart = false;
 bool is_wiiu_menu = false;
+bool theme_item_pressed = false;
 
 std::vector<std::string> themeNames;
 std::string lastChangedTheme;
 
 std::vector<std::string> enabledThemes;
+
+bool isValidThemeDirectory(const std::string& path) {
+    DIR* dir = opendir(path.c_str());
+    if (dir == nullptr) {
+        return false;
+    }
+
+    struct dirent* entry;
+    struct stat entryInfo;
+    bool validTheme = false;
+
+    while ((entry = readdir(dir)) != nullptr) {
+        std::string entryPath = path + "/" + entry->d_name;
+
+        if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+            continue;
+        }
+
+        if (stat(entryPath.c_str(), &entryInfo) == 0) {
+            if (S_ISDIR(entryInfo.st_mode)) {
+                if (isValidThemeDirectory(entryPath)) {
+                    validTheme = true;
+                    break;
+                }
+            } else if (S_ISREG(entryInfo.st_mode)) {
+                if (strcmp(entry->d_name, "Men.pack") == 0 || 
+                    strcmp(entry->d_name, "Men2.pack") == 0 || 
+                    strcmp(entry->d_name, "cafe_barista_men.bfsar") == 0) {
+                    validTheme = true;
+                    break;
+                }
+            }
+        }
+    }
+
+    closedir(dir);
+    return validTheme;
+}
 
 static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
     if (!item || !item->identifier) {
@@ -105,69 +146,81 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
             }
         }
     }
-    else
-    {
-        enabledThemes.clear();
 
-        for (const auto& theme : themeNames) {
-            bool themeEnabled = false;
+    if ((err = WUPSStorageAPI::Store(THEME_MANAGER_ENABLED_STRING, gThemeManagerEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to get or create item \"%s\": %s (%d)", THEME_MANAGER_ENABLED_STRING, WUPSStorageAPI_GetStatusStr(err), err);
+    }
 
-            if (WUPSStorageAPI::Get(theme, themeEnabled) == WUPS_STORAGE_ERROR_SUCCESS) {
-                if (themeEnabled) {
-                    enabledThemes.push_back(theme);
-                }
-            } else {
-                DEBUG_FUNCTION_LINE_WARN("Failed to get theme status for \"%s\"", theme.c_str());
+    if ((err = WUPSStorageAPI::Store(SHUFFLE_THEMES_STRING, gShuffleThemes)) != WUPS_STORAGE_ERROR_SUCCESS) {
+        DEBUG_FUNCTION_LINE_ERR("Failed to get or create item \"%s\": %s (%d)", SHUFFLE_THEMES_STRING, WUPSStorageAPI_GetStatusStr(err), err);
+    }
+}
+
+static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
+    if (!item || !item->identifier) {
+        DEBUG_FUNCTION_LINE_WARN("Invalid item or identifier in bool item callback");
+        return;
+    }
+    DEBUG_FUNCTION_LINE_VERBOSE("New value in %s changed: %d", item->identifier, newValue);
+    
+    WUPSStorageError err;
+    need_to_restart = true;
+
+    enabledThemes.clear();
+
+    for (const auto& theme : themeNames) {
+        bool themeEnabled = false;
+
+        if (WUPSStorageAPI::Get(theme, themeEnabled) == WUPS_STORAGE_ERROR_SUCCESS) {
+            if (themeEnabled) {
+                enabledThemes.push_back(theme);
             }
+        } else {
+            DEBUG_FUNCTION_LINE_WARN("Failed to get theme status for \"%s\"", theme.c_str());
         }
+    }
 
-        if (newValue) {
-            enabledThemes.push_back(std::string(item->identifier));
-        }
+    if (newValue) {
+        enabledThemes.push_back(std::string(item->identifier));
+    }
 
-        lastChangedTheme = item->identifier;
-        gCurrentTheme = lastChangedTheme;
-        DEBUG_FUNCTION_LINE("Theme selected: %s", gCurrentTheme.c_str());
+    lastChangedTheme = item->identifier;
+    gCurrentTheme = lastChangedTheme;
+    DEBUG_FUNCTION_LINE("Theme selected: %s", gCurrentTheme.c_str());
 
-        if(lastChangedTheme == gCurrentTheme){
-            need_to_restart = true;
-        }
+    if(lastChangedTheme == gCurrentTheme){
+        need_to_restart = true;
+    }
 
-        for (const auto& theme : themeNames) {
-            if (!gShuffleThemes) {
-                // Non-shuffle mode: disable all themes except the selected one
-                bool itemValue = (theme == lastChangedTheme) ? newValue : false;
+    for (const auto& theme : themeNames) {
+        if (!gShuffleThemes) {
+            bool itemValue = (theme == lastChangedTheme) ? newValue : false;
+            if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+            }
+            if (!itemValue && theme == gCurrentTheme) {
+                gCurrentTheme = "";
+            }
+        } else {
+            if (theme == lastChangedTheme) {
+                bool itemValue = newValue;
                 if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
                     DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
                 }
-                if (!itemValue && theme == gCurrentTheme) {
-                    gCurrentTheme = "";
-                }
-            } else {
-                // Shuffle mode: Only enable themes that the user selected (newValue == true)
-                if (theme == lastChangedTheme) {
-                    bool itemValue = newValue;
-                    if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+                if (itemValue) {
+                    if (std::find(enabledThemes.begin(), enabledThemes.end(), theme) == enabledThemes.end()) {
+                        enabledThemes.push_back(theme);
                     }
-                    if (itemValue) {
-                        // Add to enabledThemes if it's selected and not already there
-                        if (std::find(enabledThemes.begin(), enabledThemes.end(), theme) == enabledThemes.end()) {
-                            enabledThemes.push_back(theme);
-                        }
-                    } else {
-                        // Remove from enabledThemes if deselected
-                        enabledThemes.erase(std::remove(enabledThemes.begin(), enabledThemes.end(), theme), enabledThemes.end());
-                    }
+                } else {
+                    enabledThemes.erase(std::remove(enabledThemes.begin(), enabledThemes.end(), theme), enabledThemes.end());
                 }
             }
         }
+    }
 
-        // Always store the currently selected theme
-        if (lastChangedTheme == gCurrentTheme) {
-            if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", "current", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
-            }
+    if (lastChangedTheme == gCurrentTheme) {
+        if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", "current", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
         }
     }
 
@@ -178,12 +231,7 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
     }
 }
 
-
 static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle rootHandle) {
-    uint64_t current_title_id = OSGetTitleID();
-    uint64_t wiiu_menu_tid = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_WII_U_MENU);
-
-    is_wiiu_menu = (current_title_id == wiiu_menu_tid);
     try {
         WUPSConfigCategory root = WUPSConfigCategory(rootHandle);
 
@@ -199,31 +247,40 @@ static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHa
         
         auto themes = WUPSConfigCategory::Create("Available Themes");
 
+        DIR* checkDir = opendir(theme_directory_path);
+        if(!checkDir){
+            theme_directory_path = theme_directory_path_fallback;
+        }
+        
         DIR* dir = opendir(theme_directory_path);
         if (dir != nullptr) {
             struct dirent* entry;
             while ((entry = readdir(dir)) != nullptr) {
                 if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-                    bool themeEnabled = false;
-                    WUPSStorageError err;
+                    std::string themeDirPath = std::string(theme_directory_path) + "/" + entry->d_name;
 
-                    if ((err = WUPSStorageAPI::Get(entry->d_name, themeEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", entry->d_name, WUPSStorageAPI_GetStatusStr(err), err);
-                        themeEnabled = false;
-                        WUPSStorageAPI::Store(entry->d_name, themeEnabled);
+                    if (isValidThemeDirectory(themeDirPath)) {
+                        bool themeEnabled = false;
+
+                        WUPSStorageError err;
+                        if ((err = WUPSStorageAPI::Get(entry->d_name, themeEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                            DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", entry->d_name, WUPSStorageAPI_GetStatusStr(err), err);
+                            themeEnabled = false;
+                            WUPSStorageAPI::Store(entry->d_name, themeEnabled);
+                        }
+
+                        themes.add(WUPSConfigItemThemeBool::Create(entry->d_name,
+                                                             entry->d_name,
+                                                             false,
+                                                             themeEnabled,
+                                                             theme_bool_item_callback));
+
+                        if (themeEnabled && gShuffleThemes) {
+                            enabledThemes.push_back(entry->d_name);
+                        }
+
+                        themeNames.push_back(entry->d_name);
                     }
-
-                    themes.add(WUPSConfigItemBoolean::Create(entry->d_name,
-                                                              entry->d_name,
-                                                              false,
-                                                              themeEnabled,
-                                                              bool_item_callback));
-
-                    if (themeEnabled && gShuffleThemes) {
-                        enabledThemes.push_back(entry->d_name);
-                    }
-
-                    themeNames.push_back(entry->d_name);
                 }
             }
             closedir(dir);
@@ -255,6 +312,7 @@ static void ConfigMenuClosedCallback() {
 }
 
 INITIALIZE_PLUGIN() {
+    NotificationModule_InitLibrary();
     ContentRedirectionStatus error;
     if ((error = ContentRedirection_InitLibrary()) != CONTENT_REDIRECTION_RESULT_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("Failed to init ContentRedirection. Error %s %d", ContentRedirection_GetStatusStr(error), error);
@@ -268,6 +326,11 @@ INITIALIZE_PLUGIN() {
 
     if ((err = WUPSStorageAPI::GetOrStoreDefault(SHUFFLE_THEMES_STRING, gShuffleThemes, DEFAULT_SHUFFLE_THEMES)) != WUPS_STORAGE_ERROR_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("Failed to get or create item \"%s\": %s (%d)", SHUFFLE_THEMES_STRING, WUPSStorageAPI_GetStatusStr(err), err);
+    }
+
+    DIR* checkDir = opendir(theme_directory_path);
+    if(!checkDir){
+        theme_directory_path = theme_directory_path_fallback;
     }
 
     DIR* dir = opendir(theme_directory_path);
@@ -312,32 +375,52 @@ INITIALIZE_PLUGIN() {
     }
 
     gContentLayerHandle = 0;
-    gAocLayerHandle     = 0;
 }
 
-void HandleThemes()
+void HandleThemesInDirectory(const std::string& directoryPath, std::map<std::string, std::string>& themeTitlePath)
 {
-    std::map<std::string, std::string> themeTitlePath;
-    const std::string themeTitleIDPath    = std::string("fs:/vol/external01/wiiu/themes/").append(gCurrentTheme);
-    DirList themeTitleDirList(themeTitleIDPath, nullptr, DirList::Dirs);
+    DirList dirList(directoryPath, nullptr, DirList::Dirs);
+    dirList.SortList();
 
-    themeTitleDirList.SortList();
-
-    for (int index = 0; index < themeTitleDirList.GetFilecount(); index++) {
-        std::string curFile = themeTitleDirList.GetFilename(index);
+    for (int index = 0; index < dirList.GetFilecount(); index++) {
+        std::string curFile = dirList.GetFilename(index);
 
         if (curFile == "." || curFile == "..") {
             continue;
         }
 
-        const std::string &packageName = curFile;
-        themeTitlePath[packageName]      = (themeTitleIDPath);
-        DEBUG_FUNCTION_LINE_VERBOSE("Found %s  %s", packageName.c_str(), themeTitlePath[packageName].c_str());
+        if (curFile == "content") {
+            themeTitlePath[curFile] = std::string(theme_directory_path).append(gCurrentTheme);
+            return;
+        }
+
+        std::string subDirPath = directoryPath + "/" + curFile;
+        HandleThemesInDirectory(subDirPath, themeTitlePath);
     }
+
+    DirList fileList(directoryPath, nullptr, DirList::Files);
+    fileList.SortList();
+
+    for (int index = 0; index < fileList.GetFilecount(); index++) {
+        std::string curFile = fileList.GetFilename(index);
+
+        if (curFile == "Men.pack" || curFile == "Men2.pack" || curFile == "cafe_barista_men.bfsar") {
+            themeTitlePath[curFile] = std::string(theme_directory_path).append(gCurrentTheme);
+            DEBUG_FUNCTION_LINE_VERBOSE("Found %s at %s", curFile.c_str(), std::string(theme_directory_path).append(gCurrentTheme).c_str());
+        }
+    }
+}
+
+void HandleThemes()
+{
+    std::map<std::string, std::string> themeTitlePath;
+    const std::string themeTitleIDPath = std::string(theme_directory_path).append(gCurrentTheme);
+
+    HandleThemesInDirectory(themeTitleIDPath, themeTitlePath);
 
     if (themeTitlePath.empty()) {
         return;
-    } else{
+    } else {
         ReplaceContent(themeTitlePath.begin()->second, themeTitlePath.begin()->first);
         return;
     }
@@ -345,12 +428,20 @@ void HandleThemes()
 
 
 ON_APPLICATION_START() {
+    uint64_t current_title_id = OSGetTitleID();
+    uint64_t wiiu_menu_tid = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_WII_U_MENU);
+
+    is_wiiu_menu = (current_title_id == wiiu_menu_tid);
+
+    if(!is_wiiu_menu) return;
     initLogging();
     WUPSStorageError err;
+
     if ((err = WUPSStorageAPI::Get("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
         DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", "current", WUPSStorageAPI_GetStatusStr(err), err);
         gCurrentTheme = "";
     }
+    
     if (gThemeManagerEnabled) {
         if (gShuffleThemes && !enabledThemes.empty()) {
             unsigned seed = static_cast<unsigned int>(time(0));
@@ -377,9 +468,6 @@ ON_APPLICATION_ENDS() {
         ContentRedirection_RemoveFSLayer(gContentLayerHandle);
         gContentLayerHandle = 0;
     }
-    if (gAocLayerHandle != 0) {
-        ContentRedirection_RemoveFSLayer(gAocLayerHandle);
-        gAocLayerHandle = 0;
-    }
+    NotificationModule_DeInitLibrary();
     deinitLogging();
 }
