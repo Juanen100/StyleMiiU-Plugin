@@ -5,7 +5,6 @@
 #include <fs/DirList.h>
 
 #include <content_redirection/redirection.h>
-#include <notifications/notifications.h>
 
 #include <coreinit/title.h>
 #include <coreinit/launch.h>
@@ -164,8 +163,6 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
     DEBUG_FUNCTION_LINE_VERBOSE("New value in %s changed: %d", item->identifier, newValue);
     
     WUPSStorageError err;
-    need_to_restart = true;
-
     enabledThemes.clear();
 
     for (const auto& theme : themeNames) {

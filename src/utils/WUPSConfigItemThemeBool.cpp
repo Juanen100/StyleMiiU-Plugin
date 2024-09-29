@@ -18,10 +18,7 @@ static inline void setTheme(ConfigItemThemeBool *item) {
         gCurrentThemeItem->value = false;
     }
 
-    if(gShuffleThemes)
-        item->value = !item->value;
-    else
-        item->value = true;
+    item->value = !item->value;
 
     gCurrentThemeItem = item;
 }
@@ -58,7 +55,7 @@ static int32_t WUPSConfigItemThemeBool_getCurrentValueSelectedDisplay(void *cont
         if(gShuffleThemes)
             snprintf(out_buf, out_size, "  Press \ue000 to remove from favorites");
         else
-            snprintf(out_buf, out_size, "  Current Theme");
+            snprintf(out_buf, out_size, "  Press \ue000 to disable Current Theme");
     }
     return 0;
 }

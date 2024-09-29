@@ -62,6 +62,13 @@
         "map": "cpp",
         "xtree": "cpp",
         "random": "cpp",
-        "iostream": "cpp"
+        "iostream": "cpp",
+        "mutex": "cpp",
+        "functional": "cpp",
+        "list": "cpp",
+        "stop_token": "cpp",
+        "thread": "cpp",
+        "unordered_map": "cpp",
+        "xhash": "cpp"
     }
 }
