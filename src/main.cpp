@@ -244,9 +244,38 @@ static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHa
         
         auto themes = WUPSConfigCategory::Create("Available Themes");
 
-        DIR* checkDir = opendir(theme_directory_path);
-        if(!checkDir){
-            theme_directory_path = theme_directory_path_fallback;
+        DIR* sdCafiinePath = opendir(theme_directory_path_fallback);
+        if(sdCafiinePath){ //Adds SDCafiine's themes too just in case
+            struct dirent* entry;
+            while ((entry = readdir(sdCafiinePath)) != nullptr) {
+                if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
+                    std::string themeDirPath = std::string(theme_directory_path_fallback) + "/" + entry->d_name;
+
+                    if (isValidThemeDirectory(themeDirPath)) {
+                        bool themeEnabled = false;
+
+                        WUPSStorageError err;
+                        if ((err = WUPSStorageAPI::Get(entry->d_name, themeEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                            DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", entry->d_name, WUPSStorageAPI_GetStatusStr(err), err);
+                            themeEnabled = false;
+                            WUPSStorageAPI::Store(entry->d_name, themeEnabled);
+                        }
+
+                        themes.add(WUPSConfigItemThemeBool::Create(entry->d_name,
+                                                             entry->d_name,
+                                                             false,
+                                                             themeEnabled,
+                                                             theme_bool_item_callback));
+
+                        if (themeEnabled && gShuffleThemes) {
+                            enabledThemes.push_back(entry->d_name);
+                        }
+
+                        themeNames.push_back(entry->d_name);
+                    }
+                }
+            }
+            closedir(sdCafiinePath);
         }
         
         DIR* dir = opendir(theme_directory_path);
@@ -309,7 +338,6 @@ static void ConfigMenuClosedCallback() {
 }
 
 INITIALIZE_PLUGIN() {
-    NotificationModule_InitLibrary();
     ContentRedirectionStatus error;
     if ((error = ContentRedirection_InitLibrary()) != CONTENT_REDIRECTION_RESULT_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("Failed to init ContentRedirection. Error %s %d", ContentRedirection_GetStatusStr(error), error);
@@ -374,9 +402,12 @@ INITIALIZE_PLUGIN() {
     gContentLayerHandle = 0;
 }
 
-void HandleThemesInDirectory(const std::string& directoryPath, std::map<std::string, std::string>& themeTitlePath)
+void HandleThemes()
 {
-    DirList dirList(directoryPath, nullptr, DirList::Dirs);
+    std::map<std::string, std::string> themeTitlePath;
+    const std::string themeTitleIDPath = std::string(theme_directory_path).append(gCurrentTheme);
+
+    DirList dirList(themeTitleIDPath, nullptr, DirList::Dirs);
     dirList.SortList();
 
     for (int index = 0; index < dirList.GetFilecount(); index++) {
@@ -388,37 +419,14 @@ void HandleThemesInDirectory(const std::string& directoryPath, std::map<std::str
 
         if (curFile == "content") {
             themeTitlePath[curFile] = std::string(theme_directory_path).append(gCurrentTheme);
-            return;
-        }
-
-        std::string subDirPath = directoryPath + "/" + curFile;
-        HandleThemesInDirectory(subDirPath, themeTitlePath);
-    }
-
-    DirList fileList(directoryPath, nullptr, DirList::Files);
-    fileList.SortList();
-
-    for (int index = 0; index < fileList.GetFilecount(); index++) {
-        std::string curFile = fileList.GetFilename(index);
-
-        if (curFile == "Men.pack" || curFile == "Men2.pack" || curFile == "cafe_barista_men.bfsar") {
-            themeTitlePath[curFile] = std::string(theme_directory_path).append(gCurrentTheme);
-            DEBUG_FUNCTION_LINE_VERBOSE("Found %s at %s", curFile.c_str(), std::string(theme_directory_path).append(gCurrentTheme).c_str());
+            break;
         }
     }
-}
-
-void HandleThemes()
-{
-    std::map<std::string, std::string> themeTitlePath;
-    const std::string themeTitleIDPath = std::string(theme_directory_path).append(gCurrentTheme);
-
-    HandleThemesInDirectory(themeTitleIDPath, themeTitlePath);
 
     if (themeTitlePath.empty()) {
         return;
     } else {
-        ReplaceContent(themeTitlePath.begin()->second, themeTitlePath.begin()->first);
+        ReplaceContent(themeTitlePath.begin()->second);
         return;
     }
 }
@@ -431,6 +439,7 @@ ON_APPLICATION_START() {
     is_wiiu_menu = (current_title_id == wiiu_menu_tid);
 
     if(!is_wiiu_menu) return;
+
     initLogging();
     WUPSStorageError err;
 
@@ -465,6 +474,5 @@ ON_APPLICATION_ENDS() {
         ContentRedirection_RemoveFSLayer(gContentLayerHandle);
         gContentLayerHandle = 0;
     }
-    NotificationModule_DeInitLibrary();
     deinitLogging();
 }

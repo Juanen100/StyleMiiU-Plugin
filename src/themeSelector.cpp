@@ -13,7 +13,7 @@
 
 bool ReplaceContentInternal(const std::string &basePath, const std::string &subdir, CRLayerHandle *layerHandle);
 
-bool ReplaceContent(const std::string &basePath, const std::string &modpack) {
+bool ReplaceContent(const std::string &basePath) {
     bool contentRes = ReplaceContentInternal(basePath, "content", &gContentLayerHandle);
     return contentRes;
 }
