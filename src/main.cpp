@@ -42,6 +42,7 @@ std::vector<std::string> themeNames;
 std::string lastChangedTheme;
 
 std::vector<std::string> enabledThemes;
+std::string gFavoriteThemes;
 
 bool isValidThemeDirectory(const std::string& path) {
     DIR* dir = opendir(path.c_str());
@@ -101,47 +102,29 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
             enabledThemes.clear();
             for (const auto& theme : themeNames) {
                 bool itemValue = (theme == lastChangedTheme);
-                if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                    DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
-                }
-
                 if (itemValue) {
                     gCurrentTheme = theme;
                     DEBUG_FUNCTION_LINE("Default theme set: %s", gCurrentTheme.c_str());
+
                     if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to store value \"%s\" for storage item \"%s\": %s (%d)", gCurrentTheme.c_str(), "current", WUPSStorageAPI_GetStatusStr(err), err);
+                        DEBUG_FUNCTION_LINE_WARN("Failed to store current theme \"%s\": %s (%d)", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
                     }
+                    break;
                 }
             }
         }
         else {
             enabledThemes.clear();
 
-            for (const auto& theme : themeNames) {
-                bool themeEnabled = false;
+            if (WUPSStorageAPI::Get("favoriteThemes", gFavoriteThemes) == WUPS_STORAGE_ERROR_SUCCESS) {
+                std::stringstream ss(gFavoriteThemes);
+                std::string theme;
 
-                if (WUPSStorageAPI::Get(theme, themeEnabled) == WUPS_STORAGE_ERROR_SUCCESS) {
-                    if (themeEnabled) {
+                while (std::getline(ss, theme, '|')) {
+                    if (!theme.empty()) {
                         enabledThemes.push_back(theme);
                     }
-                } else {
-                    DEBUG_FUNCTION_LINE_WARN("Failed to get theme status for \"%s\"", theme.c_str());
                 }
-            }
-
-            for (const auto& theme : themeNames) {
-                if (std::find(enabledThemes.begin(), enabledThemes.end(), theme) == enabledThemes.end()) {
-                    bool itemValue = true;
-                    if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
-                    }
-                    enabledThemes.push_back(theme);
-                }
-            }
-
-            gCurrentTheme = !enabledThemes.empty() ? enabledThemes.front() : "";
-            if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                DEBUG_FUNCTION_LINE_WARN("Failed to store value \"%s\" for storage item \"%s\": %s (%d)", gCurrentTheme.c_str(), "current", WUPSStorageAPI_GetStatusStr(err), err);
             }
         }
     }
@@ -163,67 +146,39 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
     DEBUG_FUNCTION_LINE_VERBOSE("New value in %s changed: %d", item->identifier, newValue);
     
     WUPSStorageError err;
-    enabledThemes.clear();
 
-    for (const auto& theme : themeNames) {
-        bool themeEnabled = false;
+    if (!gShuffleThemes) {
+        gCurrentTheme = item->identifier;
+        lastChangedTheme = gCurrentTheme;
 
-        if (WUPSStorageAPI::Get(theme, themeEnabled) == WUPS_STORAGE_ERROR_SUCCESS) {
-            if (themeEnabled) {
-                enabledThemes.push_back(theme);
-            }
-        } else {
-            DEBUG_FUNCTION_LINE_WARN("Failed to get theme status for \"%s\"", theme.c_str());
-        }
-    }
-
-    if (newValue) {
-        enabledThemes.push_back(std::string(item->identifier));
-    }
-
-    lastChangedTheme = item->identifier;
-    gCurrentTheme = lastChangedTheme;
-    DEBUG_FUNCTION_LINE("Theme selected: %s", gCurrentTheme.c_str());
-
-    if(lastChangedTheme == gCurrentTheme){
-        need_to_restart = true;
-    }
-
-    for (const auto& theme : themeNames) {
-        if (!gShuffleThemes) {
-            bool itemValue = (theme == lastChangedTheme) ? newValue : false;
-            if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
-            }
-            if (!itemValue && theme == gCurrentTheme) {
-                gCurrentTheme = "";
-            }
-        } else {
-            if (theme == lastChangedTheme) {
-                bool itemValue = newValue;
-                if ((err = WUPSStorageAPI::Store(theme, itemValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                    DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", itemValue, theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
-                }
-                if (itemValue) {
-                    if (std::find(enabledThemes.begin(), enabledThemes.end(), theme) == enabledThemes.end()) {
-                        enabledThemes.push_back(theme);
-                    }
-                } else {
-                    enabledThemes.erase(std::remove(enabledThemes.begin(), enabledThemes.end(), theme), enabledThemes.end());
-                }
-            }
-        }
-    }
-
-    if (lastChangedTheme == gCurrentTheme) {
         if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-            DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", "current", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+            DEBUG_FUNCTION_LINE_WARN("Failed to store current theme \"%s\": %s (%d)", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+        } else {
+            need_to_restart = true;
         }
-    }
 
-    if(item->identifier != gCurrentTheme) {
-        if ((err = WUPSStorageAPI::Store(item->identifier, newValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
-            DEBUG_FUNCTION_LINE_WARN("Failed to store value %d to storage item \"%s\": %s (%d)", newValue, item->identifier, WUPSStorageAPI_GetStatusStr(err), err);
+        gFavoriteThemes = "";
+        if ((err = WUPSStorageAPI::Store("favoriteThemes", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_WARN("Failed to store favorite themes \"%s\": %s (%d)", gFavoriteThemes.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+        }
+    } 
+    else {
+        if (newValue) {
+            enabledThemes.push_back(std::string(item->identifier));
+        } else {
+            enabledThemes.erase(std::remove(enabledThemes.begin(), enabledThemes.end(), item->identifier), enabledThemes.end());
+        }
+
+        std::stringstream ss;
+        for (const auto& theme : enabledThemes) {
+            ss << theme << "|";
+        }
+        gFavoriteThemes = ss.str();
+
+        if ((err = WUPSStorageAPI::Store("favoriteThemes", gFavoriteThemes)) != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_WARN("Failed to store favorite themes \"%s\": %s (%d)", gFavoriteThemes.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+        } else {
+            need_to_restart = true;
         }
     }
 }
@@ -255,10 +210,24 @@ static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHa
                         bool themeEnabled = false;
 
                         WUPSStorageError err;
-                        if ((err = WUPSStorageAPI::Get(entry->d_name, themeEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                            DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", entry->d_name, WUPSStorageAPI_GetStatusStr(err), err);
-                            themeEnabled = false;
-                            WUPSStorageAPI::Store(entry->d_name, themeEnabled);
+
+                        if (gShuffleThemes) {
+                            std::stringstream ss(gFavoriteThemes);
+                            std::string theme;
+
+                            while (std::getline(ss, theme, '|')) {
+                                if (theme == entry->d_name) {
+                                    themeEnabled = true;
+                                    break;
+                                }
+                            }
+                        } else {
+                            std::string enabledTheme;
+                            if ((err = WUPSStorageAPI::Get("current", enabledTheme)) == WUPS_STORAGE_ERROR_SUCCESS) {
+                                if (enabledTheme == entry->d_name) {
+                                    themeEnabled = true;
+                                }
+                            }
                         }
 
                         themes.add(WUPSConfigItemThemeBool::Create(entry->d_name,
@@ -289,10 +258,24 @@ static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHa
                         bool themeEnabled = false;
 
                         WUPSStorageError err;
-                        if ((err = WUPSStorageAPI::Get(entry->d_name, themeEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                            DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", entry->d_name, WUPSStorageAPI_GetStatusStr(err), err);
-                            themeEnabled = false;
-                            WUPSStorageAPI::Store(entry->d_name, themeEnabled);
+
+                        if (gShuffleThemes) {
+                            std::stringstream ss(gFavoriteThemes);
+                            std::string theme;
+
+                            while (std::getline(ss, theme, '|')) {
+                                if (theme == entry->d_name) {
+                                    themeEnabled = true;
+                                    break;
+                                }
+                            }
+                        } else {
+                            std::string enabledTheme;
+                            if ((err = WUPSStorageAPI::Get("current", enabledTheme)) == WUPS_STORAGE_ERROR_SUCCESS) {
+                                if (enabledTheme == entry->d_name) {
+                                    themeEnabled = true;
+                                }
+                            }
                         }
 
                         themes.add(WUPSConfigItemThemeBool::Create(entry->d_name,
@@ -363,24 +346,7 @@ INITIALIZE_PLUGIN() {
         struct dirent* entry;
         while ((entry = readdir(dir)) != nullptr) {
             if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-                bool themeExists = false;
-                if ((err = WUPSStorageAPI::Get(entry->d_name, themeExists)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                    DEBUG_FUNCTION_LINE_ERR("Failed to get storage item \"%s\": %s (%d)", entry->d_name, WUPSStorageAPI_GetStatusStr(err), err);
-                    continue;
-                }
-
-                if(themeExists && gShuffleThemes){
-                    enabledThemes.push_back(entry->d_name);
-                }
-
-                if (!themeExists) {
-                    bool defaultValue = false;
-                    if ((err = WUPSStorageAPI::Store(entry->d_name, defaultValue)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to store new theme \"%s\": %s (%d)", entry->d_name, WUPSStorageAPI_GetStatusStr(err), err);
-                    } else {
-                        themeNames.push_back(entry->d_name);
-                    }
-                }
+                themeNames.push_back(entry->d_name);
             }
         }
         closedir(dir);
@@ -442,25 +408,31 @@ ON_APPLICATION_START() {
 
     initLogging();
     WUPSStorageError err;
-
-    if ((err = WUPSStorageAPI::Get("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-        DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", "current", WUPSStorageAPI_GetStatusStr(err), err);
-        gCurrentTheme = "";
-    }
     
     if (gThemeManagerEnabled) {
-        if (gShuffleThemes && !enabledThemes.empty()) {
-            unsigned seed = static_cast<unsigned int>(time(0));
-            std::mt19937 rng(seed);
-            std::shuffle(enabledThemes.begin(), enabledThemes.end(), rng);
+        if (gShuffleThemes) {
+            if((err = WUPSStorageAPI::Get("favoriteThemes", gFavoriteThemes)) == WUPS_STORAGE_ERROR_SUCCESS){
+                std::stringstream ss(gFavoriteThemes);
+                std::string theme;
+                while (std::getline(ss, theme, '|')) {
+                    enabledThemes.push_back(theme);
+                }
 
-            size_t randomIndex = rng() % enabledThemes.size();
-            gCurrentTheme = enabledThemes[randomIndex];
+                if (!enabledThemes.empty()) {
+                    unsigned seed = static_cast<unsigned int>(time(0));
+                    std::mt19937 rng(seed);
+                    std::shuffle(enabledThemes.begin(), enabledThemes.end(), rng);
+                    size_t randomIndex = rng() % enabledThemes.size();
+                    gCurrentTheme = enabledThemes[randomIndex];
 
-            DEBUG_FUNCTION_LINE("Randomly selected theme: %s", gCurrentTheme.c_str());
-
-            if ((err = WUPSStorageAPI::Store("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                DEBUG_FUNCTION_LINE_WARN("Failed to store value \"%s\" for storage item \"%s\": %s (%d)", gCurrentTheme.c_str(), "current", WUPSStorageAPI_GetStatusStr(err), err);
+                    DEBUG_FUNCTION_LINE("Randomly selected theme: %s", gCurrentTheme.c_str());
+                }
+            }
+        }
+        else {
+            if ((err = WUPSStorageAPI::Get("current", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", "current", WUPSStorageAPI_GetStatusStr(err), err);
+                gCurrentTheme = "";
             }
         }
         HandleThemes();
