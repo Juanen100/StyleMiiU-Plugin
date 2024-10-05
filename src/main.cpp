@@ -152,11 +152,8 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
         }
         enabledThemes.clear();
         enabledThemes.push_back(std::string(gCurrentThemeItem->identifier));
-        std::stringstream ss;
-        for (const auto& theme : enabledThemes) {
-            ss << theme;
-        }
-        std::string storedThemes = ss.str();
+        std::string storedThemes = gCurrentThemeItem->identifier;
+
 
         gCurrentTheme = storedThemes;
 
@@ -170,7 +167,9 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
         }
         
         if (newValue) {
-            enabledThemes.push_back(std::string(item->identifier));
+            if (std::find(enabledThemes.begin(), enabledThemes.end(), item->identifier) == enabledThemes.end()) {
+                enabledThemes.push_back(std::string(item->identifier));
+            }
         } else {
             enabledThemes.erase(std::remove(enabledThemes.begin(), enabledThemes.end(), item->identifier), enabledThemes.end());
         }

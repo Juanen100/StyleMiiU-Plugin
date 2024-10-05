@@ -16,4 +16,5 @@ Additional options:
 
 ## Building
 Requires the [libcontentredirection](https://github.com/wiiu-env/libcontentredirection) and [wut](https://github.com/devkitPro/wut)
+
 Should be as easy as running `make` and let it do it's thing.

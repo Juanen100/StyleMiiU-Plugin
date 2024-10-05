@@ -3,7 +3,9 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+
 #include <wups/config.h>
+
 #include "globals.h"
 
 static void WUPSConfigItemThemeBool_onCloseCallback(void *context) {
@@ -57,6 +59,7 @@ static int32_t WUPSConfigItemThemeBool_getCurrentValueSelectedDisplay(void *cont
         else
             snprintf(out_buf, out_size, "  Press \ue000 to disable Current Theme");
     }
+
     return 0;
 }
 
