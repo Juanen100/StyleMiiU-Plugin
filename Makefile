@@ -19,7 +19,7 @@ WUMS_ROOT := $(DEVKITPRO)/wums
 # DATA is a list of directories containing data files
 # INCLUDES is a list of directories containing header files
 #-------------------------------------------------------------------------------
-TARGET		:=	theme_manager
+TARGET		:=	stylemiiu
 BUILD		:=	build
 SOURCES		:=	src src/utils src/fs src/utils/ModifiedWUPS
 DATA		:=	data

@@ -19,6 +19,7 @@ std::string getTitleID(uint64_t tid)
     else if(tid == 0x0005001010040200L){
         return "0005001010040200";
     }
+    return "0005001010040100";
 }
 
 std::string tid = getTitleID(_SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_WII_U_MENU));

@@ -25,14 +25,14 @@
 #include <ctime>
 #include <chrono>
 
-WUPS_PLUGIN_NAME("Theme Manager");
-WUPS_PLUGIN_DESCRIPTION("A way to easily manage custom themes");
+WUPS_PLUGIN_NAME("StyleMiiU");
+WUPS_PLUGIN_DESCRIPTION("A way to easily load custom themes");
 WUPS_PLUGIN_VERSION(VERSION);
 WUPS_PLUGIN_AUTHOR("Juanen100");
 WUPS_PLUGIN_LICENSE("GPLv3");
 
 WUPS_USE_WUT_DEVOPTAB();
-WUPS_USE_STORAGE("theme_manager");
+WUPS_USE_STORAGE("style-mii-u");
 
 bool need_to_restart = false;
 bool is_wiiu_menu = false;
@@ -101,17 +101,15 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
         gShuffleThemes = newValue;
 
         if (!newValue) { //Disable all themes
-            if(enabledThemes.size() > 1){
-                for (const auto& theme : themeNames) {
-                    if (theme == lastChangedTheme) {
-                        enabledThemes.clear();
-                        enabledThemes.push_back(theme);
+            for (const auto& theme : themeNames) {
+                if (theme == lastChangedTheme) {
+                    enabledThemes.clear();
+                    enabledThemes.push_back(theme);
 
-                        if ((err = WUPSStorageAPI::Store("enabledThemes", theme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                            DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
-                        }
-                        break;
+                    if ((err = WUPSStorageAPI::Store("enabledThemes", theme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                        DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
                     }
+                    break;
                 }
             }
             need_to_restart = true;
@@ -149,6 +147,8 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
     
     WUPSStorageError err;
 
+    gShuffleThemes = shuffleEnabled;
+
     if (!gShuffleThemes) {
         std::string blank = "";
         if ((err = WUPSStorageAPI::Store("enabledThemes", blank)) != WUPS_STORAGE_ERROR_SUCCESS) {
@@ -170,12 +170,12 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
         }
         
         if (newValue) {
-            if (std::find(enabledThemes.begin(), enabledThemes.end(), item->identifier) == enabledThemes.end()) {
-                enabledThemes.push_back(std::string(item->identifier));
-            }
+            enabledThemes.push_back(std::string(item->identifier));
         } else {
             enabledThemes.erase(std::remove(enabledThemes.begin(), enabledThemes.end(), item->identifier), enabledThemes.end());
         }
+
+        enabledThemes.erase(std::unique(enabledThemes.begin(), enabledThemes.end()), enabledThemes.end());
 
         std::stringstream ss;
         for (const auto& theme : enabledThemes) {
@@ -195,7 +195,7 @@ static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHa
         WUPSConfigCategory root = WUPSConfigCategory(rootHandle);
 
         root.add(WUPSConfigItemBoolean::Create(THEME_MANAGER_ENABLED_STRING,
-                                               "Enable Theme Manager",
+                                               "Enable StyleMiiU",
                                                DEFAULT_THEME_MANAGER_ENABLED, gThemeManagerEnabled,
                                                &bool_item_callback));
 
@@ -318,7 +318,7 @@ INITIALIZE_PLUGIN() {
         DEBUG_FUNCTION_LINE_ERR("Failed to save storage: %s (%d)", WUPSStorageAPI_GetStatusStr(err), err);
     }
 
-    WUPSConfigAPIOptionsV1 configOptions = {.name = "Theme Manager"};
+    WUPSConfigAPIOptionsV1 configOptions = {.name = "StyleMiiU"};
     WUPSConfigAPIStatus configErr;
     if ((configErr = WUPSConfigAPI_Init(configOptions, ConfigMenuOpenedCallback, ConfigMenuClosedCallback)) != WUPSCONFIG_API_RESULT_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("Failed to init config api: %s (%d)", WUPSConfigAPI_GetStatusStr(configErr), configErr);
