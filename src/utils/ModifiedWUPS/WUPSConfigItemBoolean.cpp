@@ -15,7 +15,7 @@ static void WUPSConfigItemBoolean_onCloseCallback(void *context) {
 
 static inline void toggleValue(ConfigItemBoolean *item) {
     item->value = !item->value;
-    if(item->identifier == SHUFFLE_THEMES_STRING)
+    if(std::string_view(SHUFFLE_THEMES_STRING) == item->identifier)
         shuffleEnabled = item->value;
 }
 
