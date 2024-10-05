@@ -21,9 +21,9 @@ WUMS_ROOT := $(DEVKITPRO)/wums
 #-------------------------------------------------------------------------------
 TARGET		:=	theme_manager
 BUILD		:=	build
-SOURCES		:=	src src/utils src/fs
+SOURCES		:=	src src/utils src/fs src/utils/ModifiedWUPS
 DATA		:=	data
-INCLUDES	:=	src src/utils src/fs
+INCLUDES	:=	src src/utils src/fs src/utils/ModifiedWUPS
 
 #-------------------------------------------------------------------------------
 # options for code generation

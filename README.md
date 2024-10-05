@@ -12,7 +12,7 @@ A step to step guide on how to use it:
 3. Once you exit the WUPS menu, the Home Menu should restart and once it gets restarted, your Home Menu will now have the theme you chose applied to it.
 
 Additional options:
-- Shuffle themes: This option tries to mimic the 3DS' option of shuffling themes, you can use it by simply activating the option and then in **Available Themes**, select the themes you want to shuffle through. The themes will change **every time you restart the console or exit to the main menu** from an application.
+- Shuffle themes: This option tries to mimic the 3DS' option of shuffling themes, you can use it by simply activating the option and then in **Available Themes**, select the themes you want to shuffle through. The themes will change **every time you restart the console**.
 
 ## Building
 Requires the [libcontentredirection](https://github.com/wiiu-env/libcontentredirection) and [wut](https://github.com/devkitPro/wut)

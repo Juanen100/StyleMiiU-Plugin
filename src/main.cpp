@@ -16,7 +16,7 @@
 #include <wups/config_api.h>
 #include <wups/storage.h>
 #include "utils/WUPSConfigItemThemeBool.h"
-#include <wups/config/WUPSConfigItemBoolean.h>
+#include "utils/ModifiedWUPS/WUPSConfigItemBoolean.h"
 
 #include <vector>
 #include <map>
@@ -43,6 +43,8 @@ std::string lastChangedTheme;
 
 std::vector<std::string> enabledThemes;
 std::string gFavoriteThemes;
+
+bool shuffleEnabled = false;
 
 bool isValidThemeDirectory(const std::string& path) {
     DIR* dir = opendir(path.c_str());
@@ -99,15 +101,17 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
         gShuffleThemes = newValue;
 
         if (!newValue) { //Disable all themes
-            for (const auto& theme : themeNames) {
-                if (theme == lastChangedTheme) {
-                    enabledThemes.clear();
-                    enabledThemes.push_back(theme);
+            if(enabledThemes.size() > 1){
+                for (const auto& theme : themeNames) {
+                    if (theme == lastChangedTheme) {
+                        enabledThemes.clear();
+                        enabledThemes.push_back(theme);
 
-                    if ((err = WUPSStorageAPI::Store("enabledThemes", theme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+                        if ((err = WUPSStorageAPI::Store("enabledThemes", theme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                            DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+                        }
+                        break;
                     }
-                    break;
                 }
             }
             need_to_restart = true;
@@ -153,7 +157,6 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
         enabledThemes.clear();
         enabledThemes.push_back(std::string(gCurrentThemeItem->identifier));
         std::string storedThemes = gCurrentThemeItem->identifier;
-
 
         gCurrentTheme = storedThemes;
 
@@ -360,41 +363,37 @@ ON_APPLICATION_START() {
 
     is_wiiu_menu = (current_title_id == wiiu_menu_tid);
 
-    if(!is_wiiu_menu) return;
+    if(!is_wiiu_menu || !gThemeManagerEnabled) return;
 
     initLogging();
     WUPSStorageError err;
-    
-    if (gThemeManagerEnabled) {
-        if (gShuffleThemes) {
-            if((err = WUPSStorageAPI::Get("enabledThemes", gFavoriteThemes)) == WUPS_STORAGE_ERROR_SUCCESS){
-                std::stringstream ss(gFavoriteThemes);
-                std::string theme;
-                while (std::getline(ss, theme, '|')) {
-                    enabledThemes.push_back(theme);
-                }
 
-                if (!enabledThemes.empty()) {
-                    unsigned seed = static_cast<unsigned int>(time(0));
-                    std::mt19937 rng(seed);
-                    std::shuffle(enabledThemes.begin(), enabledThemes.end(), rng);
-                    size_t randomIndex = rng() % enabledThemes.size();
-                    gCurrentTheme = enabledThemes[randomIndex];
+    if (gShuffleThemes) {
+        if((err = WUPSStorageAPI::Get("enabledThemes", gFavoriteThemes)) == WUPS_STORAGE_ERROR_SUCCESS){
+            std::stringstream ss(gFavoriteThemes);
+            std::string theme;
+            while (std::getline(ss, theme, '|')) {
+                enabledThemes.push_back(theme);
+            }
 
-                    DEBUG_FUNCTION_LINE("Randomly selected theme: %s", gCurrentTheme.c_str());
-                }
+            if (!enabledThemes.empty()) {
+                unsigned seed = static_cast<unsigned int>(time(0));
+                std::mt19937 rng(seed);
+                std::shuffle(enabledThemes.begin(), enabledThemes.end(), rng);
+                size_t randomIndex = rng() % enabledThemes.size();
+                gCurrentTheme = enabledThemes[randomIndex];
+
+                DEBUG_FUNCTION_LINE("Randomly selected theme: %s", gCurrentTheme.c_str());
             }
         }
-        else {
-            if ((err = WUPSStorageAPI::Get("enabledThemes", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", "current", WUPSStorageAPI_GetStatusStr(err), err);
-                gCurrentTheme = "";
-            }
-        }
-        HandleThemes();
-    } else {
-        DEBUG_FUNCTION_LINE("Theme Manager is disabled");
     }
+    else {
+        if ((err = WUPSStorageAPI::Get("enabledThemes", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+            DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", "current", WUPSStorageAPI_GetStatusStr(err), err);
+            gCurrentTheme = "";
+        }
+    }
+    HandleThemes();
 }
 
 ON_APPLICATION_ENDS() {

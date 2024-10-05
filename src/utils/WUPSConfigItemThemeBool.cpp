@@ -5,6 +5,7 @@
 #include <cstring>
 
 #include <wups/config.h>
+#include <wups/storage.h>
 
 #include "globals.h"
 
@@ -16,7 +17,7 @@ static void WUPSConfigItemThemeBool_onCloseCallback(void *context) {
 }
 
 static inline void setTheme(ConfigItemThemeBool *item) {
-    if (gCurrentThemeItem != nullptr && gCurrentThemeItem != item && !gShuffleThemes) {
+    if (gCurrentThemeItem != nullptr && gCurrentThemeItem != item && !shuffleEnabled) {
         gCurrentThemeItem->value = false;
     }
 
@@ -37,7 +38,7 @@ static int32_t WUPSConfigItemThemeBool_getCurrentValueDisplay(void *context, cha
     if (!item->value) {
         snprintf(out_buf, out_size, "  ");
     } else {
-        if(gShuffleThemes)
+        if(shuffleEnabled)
             snprintf(out_buf, out_size, "  Favorite");
         else
             snprintf(out_buf, out_size, "  Current Theme");
@@ -49,12 +50,12 @@ static int32_t WUPSConfigItemThemeBool_getCurrentValueDisplay(void *context, cha
 static int32_t WUPSConfigItemThemeBool_getCurrentValueSelectedDisplay(void *context, char *out_buf, int32_t out_size) {
     auto *item = (ConfigItemThemeBool *) context;
     if (!item->value) {
-        if(gShuffleThemes)
+        if(shuffleEnabled)
             snprintf(out_buf, out_size, "  Press \ue000 to add to favorites");
         else
             snprintf(out_buf, out_size, "  Press \ue000 to set as Current Theme");
     } else {
-        if(gShuffleThemes)
+        if(shuffleEnabled)
             snprintf(out_buf, out_size, "  Press \ue000 to remove from favorites");
         else
             snprintf(out_buf, out_size, "  Press \ue000 to disable Current Theme");
@@ -110,6 +111,8 @@ WUPSConfigItemThemeBool_CreateEx(const char *identifier,
     snprintf(item->trueValue, sizeof(item->trueValue), "%s", trueValue);
     snprintf(item->falseValue, sizeof(item->falseValue), "%s", falseValue);
 
+    WUPSStorageAPI::Get(SHUFFLE_THEMES_STRING, shuffleEnabled);
+
     WUPSConfigAPIItemCallbacksV2 callbacks = {
             .getCurrentValueDisplay         = &WUPSConfigItemThemeBool_getCurrentValueDisplay,
             .getCurrentValueSelectedDisplay = &WUPSConfigItemThemeBool_getCurrentValueSelectedDisplay,
@@ -127,7 +130,7 @@ WUPSConfigItemThemeBool_CreateEx(const char *identifier,
             .callbacks   = callbacks,
     };
 
-    if(currentValue == true && !gShuffleThemes) {
+    if(currentValue == true && !shuffleEnabled) {
         gCurrentThemeItem = item;
     }
 

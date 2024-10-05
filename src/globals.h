@@ -19,3 +19,5 @@ extern const char* theme_directory_path_fallback;
 extern ConfigItemThemeBool* gCurrentThemeItem;
 
 extern CRLayerHandle gContentLayerHandle;
+
+extern bool shuffleEnabled;
