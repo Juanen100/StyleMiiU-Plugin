@@ -19,7 +19,7 @@ bool ReplaceContent(const std::string &basePath) {
 }
 
 bool ReplaceContentInternal(const std::string &basePath, const std::string &subdir, CRLayerHandle *layerHandle) {
-    std::string layerName = "ThemeManager /vol/" + subdir;
+    std::string layerName = "StyleMiiU /vol/" + subdir;
     std::string fullPath  = basePath + "/" + subdir;
     struct stat st {};
 

@@ -100,16 +100,26 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
     {
         gShuffleThemes = newValue;
 
-        if (!newValue) { //Disable all themes
-            for (const auto& theme : themeNames) {
-                if (theme == lastChangedTheme) {
-                    enabledThemes.clear();
-                    enabledThemes.push_back(theme);
-
-                    if ((err = WUPSStorageAPI::Store("enabledThemes", theme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                        DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", theme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+        if (!newValue) {
+            enabledThemes.clear();
+            std::string lastTheme;
+            std::string storedThemes;
+            
+            if (WUPSStorageAPI::Get("enabledThemes", storedThemes) == WUPS_STORAGE_ERROR_SUCCESS) {
+                std::stringstream ss(storedThemes);
+                std::string theme;
+                
+                while (std::getline(ss, theme, '|')) {
+                    if (!theme.empty()) {
+                        lastTheme = theme;
                     }
-                    break;
+                }
+            }
+
+            if (!lastTheme.empty()) {
+                enabledThemes.push_back(lastTheme);
+                if ((err = WUPSStorageAPI::Store("enabledThemes", lastTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                    DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", lastTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
                 }
             }
             need_to_restart = true;
@@ -236,12 +246,13 @@ static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHa
                                 }
                             }
                         }
-
-                        themes.add(WUPSConfigItemThemeBool::Create(entry->d_name,
+                        
+                        auto configBool = WUPSConfigItemThemeBool::Create(entry->d_name,
                                                              entry->d_name,
                                                              false,
                                                              themeEnabled,
-                                                             theme_bool_item_callback));
+                                                             theme_bool_item_callback);
+                        themes.add(std::move(configBool));
 
                         if (themeEnabled && gShuffleThemes) {
                             enabledThemes.push_back(entry->d_name);
