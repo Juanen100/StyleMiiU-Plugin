@@ -2,6 +2,7 @@
 #include <content_redirection/redirection.h>
 #include "WUPSConfigItemThemeBool.h"
 #include <string>
+#include <vector>
 
 #define VERSION                                "v1.0"
 #define THEME_MANAGER_ENABLED_STRING           "themeManagerEnabled"
@@ -21,3 +22,5 @@ extern ConfigItemThemeBool* gCurrentThemeItem;
 extern CRLayerHandle gContentLayerHandle;
 
 extern bool shuffleEnabled;
+
+extern std::vector<std::string> enabledThemes;

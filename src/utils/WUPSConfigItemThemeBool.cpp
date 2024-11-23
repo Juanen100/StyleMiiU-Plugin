@@ -20,6 +20,7 @@ static inline void setTheme(ConfigItemThemeBool *item) {
     if (gCurrentThemeItem != nullptr && gCurrentThemeItem != item && !shuffleEnabled) {
         gCurrentThemeItem->value = false;
     }
+    enabledThemes[0] = item->identifier;
 
     item->value = !item->value;
 
@@ -38,10 +39,16 @@ static int32_t WUPSConfigItemThemeBool_getCurrentValueDisplay(void *context, cha
     if (!item->value) {
         snprintf(out_buf, out_size, "  ");
     } else {
-        if(shuffleEnabled)
+        if (shuffleEnabled) {
             snprintf(out_buf, out_size, "  Favorite");
-        else
-            snprintf(out_buf, out_size, "  Current Theme");
+        } else {
+            if (!enabledThemes.empty() && enabledThemes[0] == item->identifier) {
+                snprintf(out_buf, out_size, "  Current Theme");
+            } else {
+                item->value = false;
+                snprintf(out_buf, out_size, "  ");
+            }
+        }
     }
     
     return 0;
@@ -50,15 +57,19 @@ static int32_t WUPSConfigItemThemeBool_getCurrentValueDisplay(void *context, cha
 static int32_t WUPSConfigItemThemeBool_getCurrentValueSelectedDisplay(void *context, char *out_buf, int32_t out_size) {
     auto *item = (ConfigItemThemeBool *) context;
     if (!item->value) {
-        if(shuffleEnabled)
-            snprintf(out_buf, out_size, "  Press \ue000 to add to favorites");
-        else
-            snprintf(out_buf, out_size, "  Press \ue000 to set as Current Theme");
+        snprintf(out_buf, out_size, shuffleEnabled 
+        ? "  Press \ue000 to add to favorites" 
+        : "  Press \ue000 to set as Current Theme");
     } else {
         if(shuffleEnabled)
             snprintf(out_buf, out_size, "  Press \ue000 to remove from favorites");
-        else
-            snprintf(out_buf, out_size, "  Press \ue000 to disable Current Theme");
+        else {
+            if (!enabledThemes.empty() && enabledThemes[0] == item->identifier) {
+                snprintf(out_buf, out_size, "  Press \ue000 to disable Current Theme");
+            } else {
+                snprintf(out_buf, out_size, "  Press \ue000 to set as Current Theme");
+            }
+        }
     }
 
     return 0;

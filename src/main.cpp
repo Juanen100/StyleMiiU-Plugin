@@ -38,7 +38,6 @@ bool need_to_restart = false;
 bool is_wiiu_menu = false;
 bool theme_item_pressed = false;
 
-std::vector<std::string> themeNames;
 std::string lastChangedTheme;
 
 std::vector<std::string> enabledThemes;
@@ -197,7 +196,9 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
             DEBUG_FUNCTION_LINE_WARN("Failed to store enabled themes: %s (%d)", WUPSStorageAPI_GetStatusStr(err), err);
         }
     }
-    need_to_restart = true;
+    
+    if(enabledThemes[0] != gCurrentTheme)
+        need_to_restart = true;
 }
 
 static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle rootHandle) {
@@ -254,11 +255,9 @@ static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHa
                                                              theme_bool_item_callback);
                         themes.add(std::move(configBool));
 
-                        if (themeEnabled && gShuffleThemes) {
+                        if (themeEnabled) {
                             enabledThemes.push_back(entry->d_name);
                         }
-
-                        themeNames.push_back(entry->d_name);
                     }
                 }
             }
@@ -310,20 +309,6 @@ INITIALIZE_PLUGIN() {
     if(stat(theme_directory_path, &st) != 0){
         theme_directory_path = theme_directory_path_fallback;
     }
-
-    DIR* dir = opendir(theme_directory_path);
-    if (dir != nullptr) {
-        struct dirent* entry;
-        while ((entry = readdir(dir)) != nullptr) {
-            if (entry->d_type == DT_DIR && strcmp(entry->d_name, ".") != 0 && strcmp(entry->d_name, "..") != 0) {
-                themeNames.push_back(entry->d_name);
-            }
-        }
-        closedir(dir);
-    } else {
-        DEBUG_FUNCTION_LINE_ERR("Failed to open theme directory: %s\n", theme_directory_path);
-    }
-
 
     if ((err = WUPSStorageAPI::SaveStorage()) != WUPS_STORAGE_ERROR_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("Failed to save storage: %s (%d)", WUPSStorageAPI_GetStatusStr(err), err);
