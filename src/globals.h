@@ -1,5 +1,5 @@
 #pragma once
-#include <content_redirection/redirection.h>
+#include <theme_redirection/redirection.h>
 #include "WUPSConfigItemThemeBool.h"
 #include <string>
 #include <vector>

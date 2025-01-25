@@ -4,7 +4,7 @@
 #include <themeSelector.h>
 #include <fs/DirList.h>
 
-#include <content_redirection/redirection.h>
+#include <theme_redirection/redirection.h>
 
 #include <coreinit/title.h>
 #include <coreinit/launch.h>
@@ -24,6 +24,7 @@
 #include <algorithm>
 #include <ctime>
 #include <chrono>
+#include <functional>
 
 WUPS_PLUGIN_NAME("StyleMiiU");
 WUPS_PLUGIN_DESCRIPTION("A way to easily load custom themes");
@@ -152,7 +153,7 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
     DEBUG_FUNCTION_LINE_VERBOSE("New value in %s changed: %d", item->identifier, newValue);
     
     WUPSStorageError err;
-
+    std::string storedThemes;
     gShuffleThemes = shuffleEnabled;
 
     if (!gShuffleThemes) {
@@ -162,9 +163,7 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
         }
         enabledThemes.clear();
         enabledThemes.push_back(std::string(gCurrentThemeItem->identifier));
-        std::string storedThemes = gCurrentThemeItem->identifier;
-
-        gCurrentTheme = storedThemes;
+        storedThemes = gCurrentThemeItem->identifier;
 
         if ((err = WUPSStorageAPI::Store("enabledThemes", storedThemes)) != WUPS_STORAGE_ERROR_SUCCESS) {
             DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
@@ -193,9 +192,11 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
             DEBUG_FUNCTION_LINE_WARN("Failed to store enabled themes: %s (%d)", WUPSStorageAPI_GetStatusStr(err), err);
         }
     }
-    
-    if(enabledThemes[0] != gCurrentTheme)
+
+    if(enabledThemes[0] != gCurrentTheme){
+        gCurrentTheme = storedThemes;
         need_to_restart = true;
+    }
 }
 
 static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle rootHandle) {
@@ -325,28 +326,50 @@ void HandleThemes()
     std::map<std::string, std::string> themeTitlePath;
     const std::string themeTitleIDPath = std::string(theme_directory_path).append(gCurrentTheme);
 
-    DirList dirList(themeTitleIDPath, nullptr, DirList::Dirs);
-    dirList.SortList();
+    std::string menPackPath;
+    std::string men2PackPath;
+    std::string cafeBaristaPath;
 
-    for (int index = 0; index < dirList.GetFilecount(); index++) {
-        std::string curFile = dirList.GetFilename(index);
-
-        if (curFile == "." || curFile == "..") {
-            continue;
+    std::function<void(const std::string&)> SearchFilesInDirectory = [&](const std::string& directoryPath) {
+        DIR* dir = opendir(directoryPath.c_str());
+        if (dir == nullptr) {
+            return;
         }
 
-        if (curFile == "content") {
-            themeTitlePath[curFile] = std::string(theme_directory_path).append(gCurrentTheme);
-            break;
-        }
-    }
+        struct dirent* entry;
+        struct stat entryInfo;
 
-    if (themeTitlePath.empty()) {
-        return;
-    } else {
-        ReplaceContent(themeTitlePath.begin()->second);
-        return;
+        while ((entry = readdir(dir)) != nullptr) {
+            std::string entryPath = directoryPath + "/" + entry->d_name;
+
+            if (strcmp(entry->d_name, ".") == 0 || strcmp(entry->d_name, "..") == 0) {
+                continue;
+            }
+
+            if (stat(entryPath.c_str(), &entryInfo) == 0) {
+                if (S_ISDIR(entryInfo.st_mode)) {
+                    SearchFilesInDirectory(entryPath);
+                } else if (S_ISREG(entryInfo.st_mode)) {
+                    if (strcmp(entry->d_name, "Men.pack") == 0 && menPackPath.empty()) {
+                        menPackPath = directoryPath;
+                    } else if (strcmp(entry->d_name, "Men2.pack") == 0 && men2PackPath.empty()) {
+                        men2PackPath = directoryPath;
+                    } else if (strcmp(entry->d_name, "cafe_barista_men.bfsar") == 0 && cafeBaristaPath.empty()) {
+                        cafeBaristaPath = directoryPath;
+                    }
+                }
+            }
+        }
+
+        closedir(dir);
+    };
+    
+    SearchFilesInDirectory(themeTitleIDPath);
+
+    if (!menPackPath.empty() && !men2PackPath.empty() && !cafeBaristaPath.empty()) {
+        ReplaceContent(menPackPath, men2PackPath, cafeBaristaPath);
     }
+    return;
 }
 
 
