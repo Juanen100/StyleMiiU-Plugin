@@ -61,9 +61,9 @@ static int32_t WUPSConfigItemThemeBool_getCurrentValueSelectedDisplay(void *cont
         ? "  Press \ue000 to add to favorites" 
         : "  Press \ue000 to set as Current Theme");
     } else {
-        if(shuffleEnabled)
+        if(shuffleEnabled) {
             snprintf(out_buf, out_size, "  Press \ue000 to remove from favorites");
-        else {
+        } else {
             if (!enabledThemes.empty() && enabledThemes[0] == item->identifier) {
                 snprintf(out_buf, out_size, "  Press \ue000 to disable Current Theme");
             } else {

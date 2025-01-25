@@ -36,9 +36,6 @@ WUPS_USE_STORAGE("style-mii-u");
 
 bool need_to_restart = false;
 bool is_wiiu_menu = false;
-bool theme_item_pressed = false;
-
-std::string lastChangedTheme;
 
 std::vector<std::string> enabledThemes;
 std::string gFavoriteThemes;
@@ -170,7 +167,7 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
         gCurrentTheme = storedThemes;
 
         if ((err = WUPSStorageAPI::Store("enabledThemes", storedThemes)) != WUPS_STORAGE_ERROR_SUCCESS) {
-            DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", lastChangedTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
+            DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
         }
     } else {
         std::string blank = "";
