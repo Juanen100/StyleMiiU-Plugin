@@ -4,6 +4,8 @@ This is an Aroma plugin to safely apply custom themes!
 Developed intending to straight forward as much as possible the process of applying custom themes to your Wii U Home Menu without running the risk of bricking your console.
 
 **No system file is modified by this plugin.**
+
+Codebase is heavily reliant on SDCafiine's base.
 ## Installation
 (`[ENVIRONMENT]` is a placeholder for the actual environment name.)
 1. Copy the file `stylemiiu.wps` into `SD:/wiiu/environments/[ENVIRONMENT]/plugins`.
