@@ -5,7 +5,7 @@ Developed intending to straight forward as much as possible the process of apply
 
 **No system file is modified by this plugin.**
 
-Codebase is heavily reliant on SDCafiine's base.
+Codebase is heavily based on SDCafiine's base.
 ## Installation
 (`[ENVIRONMENT]` is a placeholder for the actual environment name.)
 1. Copy the file `stylemiiu.wps` into `SD:/wiiu/environments/[ENVIRONMENT]/plugins`.

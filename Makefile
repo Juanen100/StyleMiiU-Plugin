@@ -38,7 +38,7 @@ CXXFLAGS	:= $(CFLAGS) -std=c++20
 ASFLAGS	:=	-g $(ARCH)
 LDFLAGS	=	-g $(ARCH) $(RPXSPECS) -Wl,-Map,$(notdir $*.map) $(WUPSSPECS) 
 
-LIBS	:= -lwups -lwut -lcontentredirection
+LIBS	:= -lwups -lwut -lthemeredirection
 
 #-------------------------------------------------------------------------------
 # list of directories containing libraries, this must be the top level
