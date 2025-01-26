@@ -11,26 +11,12 @@
 #include <utils/logger.h>
 #include <wups/storage.h>
 
-bool ReplaceContentInternal(const std::string &subdir, CRLayerHandle *layerHandle);
-
-std::string _menPackPath;
-std::string _men2PackPath;
-std::string _cafeBaristaMenPath;
-
 bool ReplaceContent(const std::string men, const std::string men2, const std::string cafeBarista) {
-    _menPackPath = men;
-    _men2PackPath = men2;
-    _cafeBaristaMenPath = cafeBarista;
-    bool contentRes = ReplaceContentInternal("content", &gContentLayerHandle);
-    return contentRes;
-}
-
-bool ReplaceContentInternal(const std::string &subdir, CRLayerHandle *layerHandle) {
     std::string layerName = "StyleMiiU /vol/" + subdir;
 
     bool oneRedirect = false;
     if(!_menPackPath.empty()){
-        auto res = ContentRedirection_AddFSLayer(layerHandle,
+        auto res = ContentRedirection_AddFSLayer(&gContentLayerHandle,
                                                  layerName.c_str(),
                                                  _menPackPath.c_str(),
                                                  FS_LAYER_TYPE_CONTENT_MERGE,
@@ -43,7 +29,7 @@ bool ReplaceContentInternal(const std::string &subdir, CRLayerHandle *layerHandl
         }
     }
     if(!_men2PackPath.empty()){
-        auto res = ContentRedirection_AddFSLayer(layerHandle,
+        auto res = ContentRedirection_AddFSLayer(&gContentLayerHandle,
                                                  layerName.c_str(),
                                                  _men2PackPath.c_str(),
                                                  FS_LAYER_TYPE_CONTENT_MERGE,
@@ -56,7 +42,7 @@ bool ReplaceContentInternal(const std::string &subdir, CRLayerHandle *layerHandl
         }
     }
     if(!_cafeBaristaMenPath.empty()){
-        auto res = ContentRedirection_AddFSLayer(layerHandle,
+        auto res = ContentRedirection_AddFSLayer(&gContentLayerHandle,
                                                  layerName.c_str(),
                                                  _cafeBaristaMenPath.c_str(),
                                                  FS_LAYER_TYPE_CONTENT_MERGE,

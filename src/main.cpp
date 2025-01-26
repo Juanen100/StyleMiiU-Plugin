@@ -323,8 +323,7 @@ INITIALIZE_PLUGIN() {
 
 void HandleThemes()
 {
-    std::map<std::string, std::string> themeTitlePath;
-    const std::string themeTitleIDPath = std::string(theme_directory_path).append(gCurrentTheme);
+    const std::string currentThemePath = std::string(theme_directory_path).append(gCurrentTheme);
 
     std::string menPackPath;
     std::string men2PackPath;
@@ -364,7 +363,7 @@ void HandleThemes()
         closedir(dir);
     };
     
-    SearchFilesInDirectory(themeTitleIDPath);
+    SearchFilesInDirectory(currentThemePath);
 
     if (!menPackPath.empty() && !men2PackPath.empty() && !cafeBaristaPath.empty()) {
         ReplaceContent(menPackPath, men2PackPath, cafeBaristaPath);
