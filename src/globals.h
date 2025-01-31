@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define VERSION                                "v0.4"
+#define VERSION                                "v0.4.1"
 #define THEME_MANAGER_ENABLED_STRING           "themeManagerEnabled"
 #define SHUFFLE_THEMES_STRING                  "suffleThemes"
 

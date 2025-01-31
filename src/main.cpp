@@ -119,7 +119,6 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
                     DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", lastTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
                 }
             }
-            need_to_restart = true;
         } else {
             enabledThemes.clear();
             std::string storedThemes;
@@ -134,6 +133,7 @@ static void bool_item_callback(ConfigItemBoolean *item, bool newValue) {
                 }
             }
         }
+        need_to_restart = true;
     }
 
     if ((err = WUPSStorageAPI::Store(THEME_MANAGER_ENABLED_STRING, gThemeManagerEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
@@ -164,6 +164,10 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
         enabledThemes.clear();
         enabledThemes.push_back(std::string(gCurrentThemeItem->identifier));
         storedThemes = gCurrentThemeItem->identifier;
+        if(enabledThemes[0] != gCurrentTheme){
+            need_to_restart = true;
+        }
+        gCurrentTheme = storedThemes;
 
         if ((err = WUPSStorageAPI::Store("enabledThemes", storedThemes)) != WUPS_STORAGE_ERROR_SUCCESS) {
             DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
@@ -191,11 +195,6 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
         if ((err = WUPSStorageAPI::Store("enabledThemes", storedThemes)) != WUPS_STORAGE_ERROR_SUCCESS) {
             DEBUG_FUNCTION_LINE_WARN("Failed to store enabled themes: %s (%d)", WUPSStorageAPI_GetStatusStr(err), err);
         }
-    }
-
-    if(enabledThemes[0] != gCurrentTheme){
-        gCurrentTheme = storedThemes;
-        need_to_restart = true;
     }
 }
 
@@ -234,7 +233,7 @@ static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHa
                             while (std::getline(ss, theme, '|')) {
                                 if (theme == entry->d_name) {
                                     themeEnabled = true;
-                                    break;
+                                    continue;
                                 }
                             }
                         } else {
