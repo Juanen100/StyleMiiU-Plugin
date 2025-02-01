@@ -156,11 +156,11 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
     std::string storedThemes;
     gShuffleThemes = shuffleEnabled;
 
+    if(gCurrentThemeItem == nullptr){
+        gCurrentThemeItem = item;
+    }
+
     if (!gShuffleThemes) {
-        std::string blank = "";
-        if ((err = WUPSStorageAPI::Store("enabledThemes", blank)) != WUPS_STORAGE_ERROR_SUCCESS) {
-            DEBUG_FUNCTION_LINE_WARN("Failed to store enabled themes: %s (%d)", WUPSStorageAPI_GetStatusStr(err), err);
-        }
         enabledThemes.clear();
         enabledThemes.push_back(std::string(gCurrentThemeItem->identifier));
         storedThemes = gCurrentThemeItem->identifier;
@@ -173,11 +173,6 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
             DEBUG_FUNCTION_LINE_WARN("Failed to store enabled theme \"%s\": %s (%d)", gCurrentTheme.c_str(), WUPSStorageAPI_GetStatusStr(err), err);
         }
     } else {
-        std::string blank = "";
-        if ((err = WUPSStorageAPI::Store("enabledThemes", blank)) != WUPS_STORAGE_ERROR_SUCCESS) {
-            DEBUG_FUNCTION_LINE_WARN("Failed to store enabled themes: %s (%d)", WUPSStorageAPI_GetStatusStr(err), err);
-        }
-        
         if (newValue) {
             enabledThemes.push_back(std::string(item->identifier));
         } else {
@@ -301,6 +296,23 @@ INITIALIZE_PLUGIN() {
     if ((err = WUPSStorageAPI::GetOrStoreDefault(SHUFFLE_THEMES_STRING, gShuffleThemes, DEFAULT_SHUFFLE_THEMES)) != WUPS_STORAGE_ERROR_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("Failed to get or create item \"%s\": %s (%d)", SHUFFLE_THEMES_STRING, WUPSStorageAPI_GetStatusStr(err), err);
     }
+
+    std::string blank = "";
+    if((err = WUPSStorageAPI::Get("enabledThemes", blank)) != WUPS_STORAGE_ERROR_SUCCESS){
+        enabledThemes.push_back("");
+        if((err = WUPSStorageAPI::Store("enabledThemes", blank)) != WUPS_STORAGE_ERROR_SUCCESS){
+            DEBUG_FUNCTION_LINE_ERR("Failed to get or create item \"%s\": %s (%d)", "enabledThemes", WUPSStorageAPI_GetStatusStr(err), err);
+        }
+    } 
+    else {
+        if(blank == "" || blank.empty()) {
+            enabledThemes.push_back("");
+            gThemeManagerEnabled = false;
+            if ((err = WUPSStorageAPI::Store(THEME_MANAGER_ENABLED_STRING, gThemeManagerEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
+                DEBUG_FUNCTION_LINE_ERR("Failed to get or create item \"%s\": %s (%d)", THEME_MANAGER_ENABLED_STRING, WUPSStorageAPI_GetStatusStr(err), err);
+            }
+        }
+    }
     
     struct stat st {};
     if(stat(theme_directory_path, &st) != 0){
@@ -402,12 +414,20 @@ ON_APPLICATION_START() {
         }
     }
     else {
-        if ((err = WUPSStorageAPI::Get("enabledThemes", gCurrentTheme)) != WUPS_STORAGE_ERROR_SUCCESS) {
-            DEBUG_FUNCTION_LINE_WARN("Failed to get storage item \"%s\": %s (%d)", "current", WUPSStorageAPI_GetStatusStr(err), err);
-            gCurrentTheme = "";
+        if ((err = WUPSStorageAPI::Get("enabledThemes", gFavoriteThemes)) == WUPS_STORAGE_ERROR_SUCCESS) {
+            std::stringstream ss(gFavoriteThemes);
+            std::string theme;
+            while (std::getline(ss, theme, '|')) {
+                enabledThemes.push_back(theme);
+            }
+
+            gCurrentTheme = enabledThemes[0];
         }
     }
-    HandleThemes();
+
+    if(gCurrentTheme != "" || !gCurrentTheme.empty()) {
+        HandleThemes();
+    }
 }
 
 ON_APPLICATION_ENDS() {

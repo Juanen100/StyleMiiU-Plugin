@@ -8,7 +8,7 @@
 #define THEME_MANAGER_ENABLED_STRING           "themeManagerEnabled"
 #define SHUFFLE_THEMES_STRING                  "suffleThemes"
 
-#define DEFAULT_THEME_MANAGER_ENABLED          true
+#define DEFAULT_THEME_MANAGER_ENABLED          false
 #define DEFAULT_SHUFFLE_THEMES                 false
 
 extern bool gThemeManagerEnabled;
