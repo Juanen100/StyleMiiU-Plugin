@@ -307,10 +307,6 @@ INITIALIZE_PLUGIN() {
     else {
         if(blank == "" || blank.empty()) {
             enabledThemes.push_back("");
-            gThemeManagerEnabled = false;
-            if ((err = WUPSStorageAPI::Store(THEME_MANAGER_ENABLED_STRING, gThemeManagerEnabled)) != WUPS_STORAGE_ERROR_SUCCESS) {
-                DEBUG_FUNCTION_LINE_ERR("Failed to get or create item \"%s\": %s (%d)", THEME_MANAGER_ENABLED_STRING, WUPSStorageAPI_GetStatusStr(err), err);
-            }
         }
     }
     
@@ -417,6 +413,10 @@ ON_APPLICATION_START() {
         if ((err = WUPSStorageAPI::Get("enabledThemes", gFavoriteThemes)) == WUPS_STORAGE_ERROR_SUCCESS) {
             std::stringstream ss(gFavoriteThemes);
             std::string theme;
+
+            if(gFavoriteThemes == "")
+                return;
+            
             while (std::getline(ss, theme, '|')) {
                 enabledThemes.push_back(theme);
             }
@@ -425,9 +425,7 @@ ON_APPLICATION_START() {
         }
     }
 
-    if(gCurrentTheme != "" || !gCurrentTheme.empty()) {
-        HandleThemes();
-    }
+    HandleThemes();
 }
 
 ON_APPLICATION_ENDS() {
