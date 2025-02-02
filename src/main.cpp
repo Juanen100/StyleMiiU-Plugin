@@ -372,7 +372,7 @@ void HandleThemes()
     
     SearchFilesInDirectory(currentThemePath);
 
-    if (!menPackPath.empty() && !men2PackPath.empty() && !cafeBaristaPath.empty()) {
+    if (!menPackPath.empty() || !men2PackPath.empty() || !cafeBaristaPath.empty()) {
         ReplaceContent(menPackPath, men2PackPath, cafeBaristaPath);
     }
     return;
