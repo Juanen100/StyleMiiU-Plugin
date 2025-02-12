@@ -4,7 +4,7 @@
 #include <themeSelector.h>
 #include <fs/DirList.h>
 
-#include <theme_redirection/redirection.h>
+#include <content_redirection/redirection.h>
 
 #include <coreinit/title.h>
 #include <coreinit/launch.h>
@@ -357,11 +357,11 @@ void HandleThemes()
                     SearchFilesInDirectory(entryPath);
                 } else if (S_ISREG(entryInfo.st_mode)) {
                     if (strcmp(entry->d_name, "Men.pack") == 0 && menPackPath.empty()) {
-                        menPackPath = directoryPath;
+                        menPackPath = directoryPath + "/" + entry->d_name;
                     } else if (strcmp(entry->d_name, "Men2.pack") == 0 && men2PackPath.empty()) {
-                        men2PackPath = directoryPath;
+                        men2PackPath = directoryPath + "/" + entry->d_name;
                     } else if (strcmp(entry->d_name, "cafe_barista_men.bfsar") == 0 && cafeBaristaPath.empty()) {
-                        cafeBaristaPath = directoryPath;
+                        cafeBaristaPath = directoryPath + "/" + entry->d_name;
                     }
                 }
             }
@@ -372,8 +372,17 @@ void HandleThemes()
     
     SearchFilesInDirectory(currentThemePath);
 
-    if (!menPackPath.empty() || !men2PackPath.empty() || !cafeBaristaPath.empty()) {
-        ReplaceContent(menPackPath, men2PackPath, cafeBaristaPath);
+    struct stat st {};
+    std::string contentPath = currentThemePath + "/content";
+    if(stat(contentPath.c_str(), &st) != 0){
+        contentPath = currentThemePath + "/Content";
+        if(stat(contentPath.c_str(), &st) != 0){
+            contentPath = "";
+        }
+    }
+
+    if (!menPackPath.empty() || !men2PackPath.empty() || !cafeBaristaPath.empty() || !contentPath.empty()) {
+        ReplaceContent(menPackPath, men2PackPath, cafeBaristaPath, contentPath);
     }
     return;
 }

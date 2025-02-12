@@ -9,7 +9,7 @@ Codebase is heavily based on SDCafiine's base.
 ## Installation
 (`[ENVIRONMENT]` is a placeholder for the actual environment name.)
 1. Copy the file `stylemiiu.wps` into `SD:/wiiu/environments/[ENVIRONMENT]/plugins`.
-2. Requires the [WiiUPluginLoaderBackend](https://github.com/wiiu-env/WiiUPluginLoaderBackend) and [ThemeRedirectionModule](https://github.com/Juanen100/ThemeRedirectionModule) in `SD:/wiiu/environments/[ENVIRONMENT]/modules`.
+2. Requires the [WiiUPluginLoaderBackend](https://github.com/wiiu-env/WiiUPluginLoaderBackend) and [ContentRedirectionModule](https://github.com/wiiu-env/ContentRedirectionModule) in `SD:/wiiu/environments/[ENVIRONMENT]/modules`.
 
 If you happen to have installed an older version of this plugin, delete the previous `theme_manager.wps` and rename `sd:/wiiu/environments/[ENVIRONMENT]/plugins/config/theme_manager.json` to `style-mii-u.json`
 

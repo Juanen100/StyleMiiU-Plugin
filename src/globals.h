@@ -1,10 +1,10 @@
 #pragma once
-#include <theme_redirection/redirection.h>
+#include <content_redirection/redirection.h>
 #include "WUPSConfigItemThemeBool.h"
 #include <string>
 #include <vector>
 
-#define VERSION                                "v0.4.1-hf"
+#define VERSION                                "v0.4.2"
 #define THEME_MANAGER_ENABLED_STRING           "themeManagerEnabled"
 #define SHUFFLE_THEMES_STRING                  "suffleThemes"
 
