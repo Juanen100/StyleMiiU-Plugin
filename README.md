@@ -30,7 +30,9 @@ Additional options:
 The plugin will sometimes not work properly when certain race conditions are triggered. The most commons ones being described further in this file.
 
 ### Bootlooping on Wii U Menu splash
-This is likely due to the fact that you're using a theme that hasn't been on a European console. European consoles have more language packs built onto the menu menaning the file size on themes needs to be smaller to work properly. This is more likely to happen with animated themes.
+The first reason might be you have both SDCafiine and StyleMiiU trying to patch a theme to the Wii U menu, which can cause issues. I'd recommend moving the themes from SDCafiine to StyleMiiU's themes folder if you want to use this plugin instead of SDCafiine.
+
+This problem might also show up due to the fact that you're using a theme that hasn't been tested or properly made to support an European/PAL console. European/PAL consoles have more language packs built onto the menu menaning the file size on themes needs to be smaller to work properly. This is more likely to happen with animated themes.
 
 ### My theme isn't loading
 The most common issue would be having bad or corrupted Men.pack, Men2.pack or cafe_barista_men.bfsar files which doesn't allow them from loading. This is highly unlikely to happen and the reason might also be the same as the bootlooping problem on EU consoles.
