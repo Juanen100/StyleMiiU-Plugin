@@ -4,7 +4,7 @@
 #include <string>
 #include <vector>
 
-#define VERSION                                "v0.4.2"
+#define VERSION                                "v0.4.3"
 #define THEME_MANAGER_ENABLED_STRING           "themeManagerEnabled"
 #define SHUFFLE_THEMES_STRING                  "suffleThemes"
 
@@ -13,9 +13,8 @@
 
 extern bool gThemeManagerEnabled;
 extern bool gShuffleThemes;
-extern std::string gCurrentTheme;
 extern const char* theme_directory_path;
-extern const char* theme_directory_path_fallback;
+extern std::string gCurrentTheme;
 
 extern ConfigItemThemeBool* gCurrentThemeItem;
 

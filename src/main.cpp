@@ -273,6 +273,7 @@ static void ConfigMenuClosedCallback() {
     if ((err = WUPSStorageAPI::SaveStorage()) != WUPS_STORAGE_ERROR_SUCCESS) {
         DEBUG_FUNCTION_LINE_ERR("Failed to close storage: %s (%d)", WUPSStorageAPI_GetStatusStr(err), err);
     }
+
     if(need_to_restart && is_wiiu_menu)
     {
         OSForceFullRelaunch();
@@ -308,11 +309,6 @@ INITIALIZE_PLUGIN() {
         if(blank == "" || blank.empty()) {
             enabledThemes.push_back("");
         }
-    }
-    
-    struct stat st {};
-    if(stat(theme_directory_path, &st) != 0){
-        theme_directory_path = theme_directory_path_fallback;
     }
 
     if ((err = WUPSStorageAPI::SaveStorage()) != WUPS_STORAGE_ERROR_SUCCESS) {
@@ -389,14 +385,15 @@ void HandleThemes()
 
 
 ON_APPLICATION_START() {
+    initLogging();
+    
     uint64_t current_title_id = OSGetTitleID();
     uint64_t wiiu_menu_tid = _SYSGetSystemApplicationTitleId(SYSTEM_APP_ID_WII_U_MENU);
 
     is_wiiu_menu = (current_title_id == wiiu_menu_tid);
 
-    if(!is_wiiu_menu || !gThemeManagerEnabled) return;
+    if(!is_wiiu_menu) return;
 
-    initLogging();
     WUPSStorageError err;
 
     if (gShuffleThemes) {
@@ -407,7 +404,7 @@ ON_APPLICATION_START() {
                 enabledThemes.push_back(theme);
             }
 
-            if (!enabledThemes.empty()) {
+            if (!enabledThemes.empty() && gThemeManagerEnabled) {
                 unsigned seed = static_cast<unsigned int>(time(0));
                 std::mt19937 rng(seed);
                 std::shuffle(enabledThemes.begin(), enabledThemes.end(), rng);
@@ -433,6 +430,8 @@ ON_APPLICATION_START() {
             gCurrentTheme = enabledThemes[0];
         }
     }
+
+    if(!gThemeManagerEnabled) return;
 
     HandleThemes();
 }
