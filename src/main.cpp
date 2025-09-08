@@ -276,7 +276,6 @@ static void ConfigMenuClosedCallback() {
 
     if(need_to_restart && is_wiiu_menu)
     {
-        OSForceFullRelaunch();
         SYSLaunchMenu();
         need_to_restart = false;
     }
