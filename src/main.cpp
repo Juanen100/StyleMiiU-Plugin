@@ -195,6 +195,8 @@ static void theme_bool_item_callback(ConfigItemThemeBool *item, bool newValue) {
 
 static WUPSConfigAPICallbackStatus ConfigMenuOpenedCallback(WUPSConfigCategoryHandle rootHandle) {
     try {
+        WUPSStorageAPI::ForceReloadStorage();
+
         WUPSConfigCategory root = WUPSConfigCategory(rootHandle);
 
         root.add(WUPSConfigItemBoolean::Create(THEME_MANAGER_ENABLED_STRING,
@@ -393,6 +395,8 @@ ON_APPLICATION_START() {
 
     if(!is_wiiu_menu) return;
 
+    WUPSStorageAPI::ForceReloadStorage();
+
     WUPSStorageError err;
 
     if (gShuffleThemes) {
@@ -426,7 +430,7 @@ ON_APPLICATION_START() {
                 enabledThemes.push_back(theme);
             }
 
-            gCurrentTheme = enabledThemes[0];
+            gCurrentTheme = gFavoriteThemes;
         }
     }
 
